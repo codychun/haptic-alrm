@@ -1,9 +1,22 @@
 // app/(tabs)/index.tsx - Example integration with your existing structure
 import React, { useEffect, useState } from 'react';
 import { Alert, PermissionsAndroid, Platform, StyleSheet, Text, View } from 'react-native';
-import { BleManager, Device } from 'react-native-ble-plx';
 import { SimplePressable } from '../components/SimplePressable';
 import { SimpleTimePickerButton } from '../components/TimePicker';
+
+// Conditional BLE import - only import on native platforms
+let BleManager: any = null;
+let Device: any = null;
+
+if (Platform.OS !== 'web') {
+  try {
+    const bleModule = require('react-native-ble-plx');
+    BleManager = bleModule.BleManager;
+    Device = bleModule.Device;
+  } catch (error) {
+    console.warn('BLE module not available:', error);
+  }
+}
 
 // BLE Command codes (must match Pico W)
 const CMD_SET_ALARM = 0x01;
@@ -26,7 +39,8 @@ const COMMAND_CHAR_UUID = '2A09';   // Day of Week Characteristic (repurposed)
 // const TIME_CHAR_UUID = '550e8400-e29b-41d4-a716-446655440002';
 // const COMMAND_CHAR_UUID = '550e8400-e29b-41d4-a716-446655440003';
 
-const bleManager = new BleManager();
+// Initialize BLE manager only on native platforms
+const bleManager = Platform.OS !== 'web' && BleManager ? new BleManager() : null;
 
 interface AlarmState {
   time: string;
@@ -41,12 +55,17 @@ export default function AlarmApp() {
     isRinging: false,
   });
 
-  const [device, setDevice] = useState<Device | null>(null);
+  const [device, setDevice] = useState<any>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
 
   // Request BLE permissions
   const requestPermissions = async () => {
+    if (Platform.OS === 'web') {
+      Alert.alert('Web Not Supported', 'Bluetooth functionality is not available on web. Please use the mobile app.');
+      return false;
+    }
+    
     if (Platform.OS === 'android') {
       const granted = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
@@ -65,6 +84,11 @@ export default function AlarmApp() {
 
   // Send command to Pico W
   const sendCommand = async (command: number, data?: number[]) => {
+    if (Platform.OS === 'web') {
+      console.log('Web platform - BLE not available');
+      return;
+    }
+    
     if (!device) {
       console.log('No device connected');
       return;
@@ -97,7 +121,13 @@ export default function AlarmApp() {
     setIsScanning(true);
     console.log('Scanning for Pico W...');
 
-    bleManager.startDeviceScan(null, null, async (error, scannedDevice) => {
+    if (!bleManager) {
+      console.log('BLE manager not available');
+      setIsScanning(false);
+      return;
+    }
+
+    bleManager.startDeviceScan(null, null, async (error: any, scannedDevice: any) => {
       if (error) {
         console.error('Scan error:', error);
         setIsScanning(false);
@@ -143,7 +173,9 @@ export default function AlarmApp() {
 
     // Cleanup on unmount
     return () => {
-      bleManager.destroy();
+      if (bleManager) {
+        bleManager.destroy();
+      }
     };
   }, []);
 
@@ -202,6 +234,11 @@ export default function AlarmApp() {
   };
 
   const reconnect = () => {
+    if (Platform.OS === 'web') {
+      Alert.alert('Web Not Supported', 'Bluetooth functionality is not available on web. Please use the mobile app.');
+      return;
+    }
+    
     if (device) {
       device.cancelConnection();
     }

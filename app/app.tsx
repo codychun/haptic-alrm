@@ -8,7 +8,11 @@ import { SimpleTimePickerButton } from '../components/TimePicker';
 let BleManager: any = null;
 let Device: any = null;
 
-if (Platform.OS !== 'web') {
+// Check if we're in Expo Go first
+const isExpoGo = (global as any).__EXPO_GO__;
+
+// Only try to import BLE if not in Expo Go and not on web
+if (!isExpoGo && Platform.OS !== 'web') {
   try {
     const bleModule = require('react-native-ble-plx');
     BleManager = bleModule.BleManager;
@@ -16,6 +20,8 @@ if (Platform.OS !== 'web') {
   } catch (error) {
     console.warn('BLE module not available:', error);
   }
+} else if (isExpoGo) {
+  console.log('Running in Expo Go - BLE not available');
 }
 
 // BLE Command codes (must match Pico W)
@@ -110,7 +116,7 @@ export default function AlarmApp() {
     }
   };
 
-  // Connect to Pico W
+  // Connect to Pico 2W
   const connectToPico = async () => {
     const hasPermission = await requestPermissions();
     if (!hasPermission) {
@@ -180,6 +186,7 @@ export default function AlarmApp() {
   }, []);
 
   const handleTimeChange = async (newTime: string) => {
+    console.log('Time change handler called with:', newTime);
     setAlarm(prev => ({ ...prev, time: newTime }));
     
     if (isConnected) {
@@ -191,6 +198,7 @@ export default function AlarmApp() {
   };
 
   const toggleArm = async () => {
+    console.log('Toggle arm handler called');
     const newArmedState = !alarm.isArmed;
     setAlarm(prev => ({ ...prev, isArmed: newArmedState }));
     

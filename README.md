@@ -1,50 +1,100 @@
-# Welcome to your Expo app 👋
+# BLE Haptic Alarm Clock
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A Bluetooth Low Energy (BLE) alarm clock system consisting of a React Native mobile app and a Raspberry Pi Pico 2W with vibration motor.
 
-## Get started
+## Features
+- **Mobile App**: Set alarm times, arm/disarm alarms, snooze functionality
+- **BLE Communication**: Wireless control between mobile app and Pico W
+- **Haptic Feedback**: Vibration motor for silent alarm
+- **Real-time Status**: Connection status and alarm state indicators
+- **Test Mode**: Test the vibration motor without waiting for alarm time
 
-1. Install dependencies
+### Pico W Setup
+- Raspberry Pi Pico 2W
+- Vibration motor (DC motor with eccentric weight)
+- Motor driver (DRV8833 or similar H-bridge)
+- Breadboard and jumper wires or solder
+- Power supply
 
+### Mobile Device
+- Android or iOS device with Bluetooth 4.0+
+- React Native development environment
+
+### 1. Pico 2W Setup
+
+1. **Flash MicroPython** to your Pico W
+2. **Connect hardware** according to `pico/HARDWARE_SETUP.md`
+3. **Upload `pico/main.py`** to your Pico W
+4. **Power on** the Pico W - it will start advertising as "PicoBLE"
+
+### 2. Mobile App Setup
+
+1. **Install dependencies**:
    ```bash
    npm install
    ```
 
-2. Start the app
+2. **Start the development server**:
+   ```bash
+   npm start
+   ```
 
+3. **Run on device**:
    ```bash
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+## Usage
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### Mobile App
+1. **Launch the app** - it will automatically scan for the Pico W
+2. **Set alarm time** using the time picker
+3. **Arm the alarm** by pressing the ARM button
+4. **Test the motor** using the TEST ALARM button
+5. **When alarm rings**: Use SNOOZE or STOP buttons
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+### Pico W
+- **LED indicator**: On when alarm is armed
+- **Motor control**: Vibrates when alarm triggers
+- **BLE server**: Accepts commands from mobile app
 
-## Get a fresh project
+## BLE Protocol
 
-When you're ready, run:
+### Service UUID: `1800`
+- **Alarm Characteristic** (`2A00`): Read/Write alarm settings
+- **Time Characteristic** (`2A08`): Read current time
+- **Command Characteristic** (`2A09`): Write commands
 
-```bash
-npm run reset-project
-```
+### Commands
+- `0x01`: Set alarm time (followed by hour, minute)
+- `0x02`: Arm alarm
+- `0x03`: Disarm alarm
+- `0x04`: Snooze alarm
+- `0x05`: Stop alarm
+- `0x06`: Test alarm
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Development
 
-## Learn more
+### Adding Features
+- **New commands**: Add command codes to both Pico W and mobile app
+- **Additional sensors**: Extend the BLE service with new characteristics
+- **Multiple alarms**: Modify the data structure to support multiple alarm times
 
-To learn more about developing your project with Expo, look at the following resources:
+### Troubleshooting
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+#### Connection Issues
+- Ensure Bluetooth is enabled on mobile device
+- Check that Pico W is powered and in range
+- Verify the device name is "PicoBLE"
+- Restart the mobile app if connection fails
 
-## Join the community
+#### Motor Issues
+- Check wiring connections
+- Verify motor driver connections
+- Ensure adequate power supply
+- Test with direct 3.3V connection first
 
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+#### BLE Issues
+- Check MicroPython BLE implementation
+- Verify UUIDs match between app and Pico W
+- Monitor serial output from Pico W for debugging

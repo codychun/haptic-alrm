@@ -1,0 +1,8 @@
+# MicroPython libraries required for the BLE Alarm Clock
+# These are built into MicroPython for Raspberry Pi Pico W
+
+# Built-in libraries (no installation needed):
+# - bluetooth (BLE functionality)
+# - machine (GPIO, RTC, Pin)
+# - utime (time functions)
+# - micropython (const function)

@@ -1,28 +1,11 @@
-// app/(tabs)/index.tsx - Example integration with your existing structure
+// Main AlarmApp component
 import React, { useEffect, useState } from 'react';
 import { Alert, PermissionsAndroid, Platform, StyleSheet, Text, View } from 'react-native';
 import { SimplePressable } from '../components/SimplePressable';
 import { SimpleTimePickerButton } from '../components/TimePicker';
 
-// Conditional BLE import - only import on native platforms
-let BleManager: any = null;
-let Device: any = null;
-
-// Check if we're in Expo Go first
-const isExpoGo = (global as any).__EXPO_GO__;
-
-// Only try to import BLE if not in Expo Go and not on web
-if (!isExpoGo && Platform.OS !== 'web') {
-  try {
-    const bleModule = require('react-native-ble-plx');
-    BleManager = bleModule.BleManager;
-    Device = bleModule.Device;
-  } catch (error) {
-    console.warn('BLE module not available:', error);
-  }
-} else if (isExpoGo) {
-  console.log('Running in Expo Go - BLE not available');
-}
+// Import BLE manager with proper platform handling
+import { createBLEManager, getPlatformInfo, isBLEAvailable } from './ble-manager';
 
 // BLE Command codes (must match Pico W)
 const CMD_SET_ALARM = 0x01;
@@ -39,14 +22,8 @@ const ALARM_CHAR_UUID = '2A00';     // Device Name Characteristic
 const TIME_CHAR_UUID = '2A08';      // Date Time Characteristic
 const COMMAND_CHAR_UUID = '2A09';   // Day of Week Characteristic (repurposed)
 
-// Alternative: Custom UUIDs (uncomment to use)
-// const ALARM_SERVICE_UUID = '550e8400-e29b-41d4-a716-446655440000';
-// const ALARM_CHAR_UUID = '550e8400-e29b-41d4-a716-446655440001';
-// const TIME_CHAR_UUID = '550e8400-e29b-41d4-a716-446655440002';
-// const COMMAND_CHAR_UUID = '550e8400-e29b-41d4-a716-446655440003';
-
-// Initialize BLE manager only on native platforms
-const bleManager = Platform.OS !== 'web' && BleManager ? new BleManager() : null;
+// Initialize BLE manager with proper platform handling
+const bleManager = createBLEManager();
 
 interface AlarmState {
   time: string;
@@ -67,8 +44,15 @@ export default function AlarmApp() {
 
   // Request BLE permissions
   const requestPermissions = async () => {
-    if (Platform.OS === 'web') {
+    const platformInfo = getPlatformInfo();
+    
+    if (platformInfo === 'Web') {
       Alert.alert('Web Not Supported', 'Bluetooth functionality is not available on web. Please use the mobile app.');
+      return false;
+    }
+    
+    if (platformInfo === 'Expo Go') {
+      Alert.alert('Expo Go Not Supported', 'Bluetooth functionality requires a development build. Please build the app using EAS Build.');
       return false;
     }
     
@@ -90,8 +74,8 @@ export default function AlarmApp() {
 
   // Send command to Pico W
   const sendCommand = async (command: number, data?: number[]) => {
-    if (Platform.OS === 'web') {
-      console.log('Web platform - BLE not available');
+    if (!isBLEAvailable()) {
+      console.log(`${getPlatformInfo()} platform - BLE not available`);
       return;
     }
     
@@ -179,7 +163,7 @@ export default function AlarmApp() {
 
     // Cleanup on unmount
     return () => {
-      if (bleManager) {
+      if (bleManager && isBLEAvailable()) {
         bleManager.destroy();
       }
     };
@@ -242,8 +226,15 @@ export default function AlarmApp() {
   };
 
   const reconnect = () => {
-    if (Platform.OS === 'web') {
+    const platformInfo = getPlatformInfo();
+    
+    if (platformInfo === 'Web') {
       Alert.alert('Web Not Supported', 'Bluetooth functionality is not available on web. Please use the mobile app.');
+      return;
+    }
+    
+    if (platformInfo === 'Expo Go') {
+      Alert.alert('Expo Go Not Supported', 'Bluetooth functionality requires a development build. Please build the app using EAS Build.');
       return;
     }
     
